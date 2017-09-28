@@ -1,0 +1,25 @@
+{
+  "name": "purescript-reactor",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output"
+  ],
+  "dependencies": {
+    "purescript-prelude": "^3.1.0",
+    "purescript-behaviors": "^6.0.0",
+    "purescript-simple-json": "^1.0.0",
+    "purescript-react": "^4.3.0",
+    "purescript-react-dom": "^4.0.0",
+    "purescript-react-redox": "^2.0.0",
+    "purescript-redox": "^7.0.1",
+    "purescript-react-spaces": "^0.5.0",
+    "purescript-react-hocs": "^0.7.2",
+    "purescript-dom-classy": "^2.1.0",
+    "purescript-affjax": "^5.0.0"
+  },
+  "devDependencies": {
+    "purescript-psci-support": "^3.0.0"
+  }
+}

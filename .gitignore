@@ -1,0 +1,12 @@
+/.vscode/
+/node_modules/
+/bower_components/
+/output/
+/dce-output/
+/generated-docs/
+/.psa*
+/.psc-package/
+/.psc*
+/.pulp-cache/
+/.purs*
+/dist/bundle*
