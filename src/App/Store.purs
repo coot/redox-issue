@@ -4,10 +4,10 @@ import Prelude
 
 import App.Action (Action(..), ActionDSL)
 import App.Domain.AppState (AppState)
-import App.Domain.User (User, UserDetail, UserId(UserId))
-import App.Domain.User as User
 import App.Domain.Resource (Resource(..))
 import App.Domain.Route (Route(..))
+import App.Domain.User (User, UserDetail, UserId(UserId))
+import App.Domain.User as User
 import Control.Comonad.Cofree (Cofree, exploreM, head, unfoldCofree)
 import Control.Monad.Aff (Aff)
 import Control.Monad.Eff.Class (liftEff)
@@ -22,9 +22,9 @@ import Data.Either (Either)
 import Data.Foreign (MultipleErrors)
 import Data.Foreign.NullOrUndefined (undefined)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (unwrap)
 import Network.HTTP.Affjax (AJAX)
-import Redox (Store, hoistCofree', mkIncInterp, mkStoreG, runSubscriptions)
+import Redox (CreateRedox, RedoxStore, Store, WriteRedox, hoistCofree', mkIncInterp, runSubscriptions)
+import Redox.Store (ReadRedox, getState)
 import Unsafe.Coerce (unsafeCoerce)
 
 newtype Run eff a = Run
@@ -44,18 +44,16 @@ initialState =
   , editingUser: Empty
   }
 
-store :: Store AppState
-store = mkStoreG initialState
-
 type Interp eff a = Cofree (Run eff) a
 
-type AppEffects eff = (ajax :: AJAX, console :: CONSOLE, dom :: DOM, history :: HISTORY | eff)
+type AppEffects eff = (ajax :: AJAX, console :: CONSOLE, dom :: DOM, history :: HISTORY, redox :: RedoxStore ( create :: CreateRedox, read :: ReadRedox, write :: WriteRedox ) | eff)
 
-mkInterp :: ∀ e eff. AppState -> Interp (AppEffects eff) AppState
-mkInterp state = unfoldCofree id (const next) state
+mkInterp :: ∀ eff. Store AppState -> AppState -> Interp (AppEffects eff) AppState
+mkInterp store st = unfoldCofree id (const next) st
   where
     changeRoute :: Route -> Aff (AppEffects eff) AppState
     changeRoute route = do
+      state <- getState store
       let
         url = case route of
           Users -> ".."
@@ -68,26 +66,26 @@ mkInterp state = unfoldCofree id (const next) state
         _ -> state { route = route }
 
     setUsersState :: Resource (Array User) -> Aff (AppEffects eff) AppState
-    setUsersState users = pure
-      case state.route of
+    setUsersState users = do
+      state <- getState store
+      pure case state.route of
         Users -> state { users = users }
         _ -> state
 
     setUserState :: Resource (Maybe UserDetail) -> Aff (AppEffects eff) AppState
-    setUserState user = pure
-      case state.route, user of
-        EditUser (Just userId_), Ready editingUser
-          | Just userId_ == map (_.name <<< unwrap) editingUser ->
-              state { editingUser = user }
-        _, _ -> state
+    setUserState user = do
+      state <- getState store
+      pure (state { editingUser = user })
 
     fetchUsers :: Aff (AppEffects eff) { users :: Either MultipleErrors (Array User), state :: AppState }
     fetchUsers = do
+      state <- getState store
       users <- User.fetchUsers
       pure { users, state }
 
     fetchUser :: UserId -> Aff (AppEffects eff) { user :: Either MultipleErrors (Maybe UserDetail), state :: AppState }
     fetchUser userId = do
+      state <- getState store
       user <- User.fetchUser userId
       pure { user, state }
 
@@ -107,13 +105,14 @@ pair (SetUserState user f) (Run interp) = f <$> interp.setUserState user
 pair (FetchUsers f) (Run interp) = (\{ users, state } -> f users state) <$> interp.fetchUsers
 pair (FetchUser userId f) (Run interp) = (\{ user, state } -> f user state) <$> interp.fetchUser userId
 
-runAction :: ∀ e eff
-   . ActionDSL (AppState -> AppState)
+runAction :: ∀ eff
+   . Store AppState
+  -> ActionDSL (AppState -> AppState)
   -> AppState
   -> Aff (AppEffects eff) AppState
-runAction cmds state =
+runAction store cmds state =
   exploreM pair cmds $
-    (logger <<< mkIncInterp store <<< runSubscriptions store <<< mkInterp) state
+    (logger <<< runSubscriptions store <<< mkIncInterp store <<< mkInterp store) state
 
 logger :: ∀ state f
    . Functor f

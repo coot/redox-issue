@@ -3,14 +3,16 @@ module App.Action where
 import Prelude
 
 import App.Domain.AppState (AppState)
-import App.Domain.User (User, UserDetail, UserId)
 import App.Domain.Resource (Resource(..))
 import App.Domain.Route (Route)
+import App.Domain.User (User, UserDetail, UserId)
 import Control.Monad.Free (Free, liftF)
 import Data.Array (sort)
 import Data.Either (Either, either)
 import Data.Foreign (MultipleErrors)
 import Data.Maybe (Maybe)
+import Debug.Trace (traceAnyA)
+import Unsafe.Coerce (unsafeCoerce)
 
 data Action a
   = ChangeRoute Route a
@@ -32,7 +34,9 @@ setUsersState :: Resource (Array User) -> ActionDSL (AppState -> AppState)
 setUsersState users = liftF $ SetUsersState users id
 
 setUserState :: Resource (Maybe UserDetail) -> ActionDSL (AppState -> AppState)
-setUserState user = liftF $ SetUserState user id
+setUserState user = do
+  _ <- traceAnyA ["setUserState", unsafeCoerce user]
+  liftF $ SetUserState user id
 
 fetchUsers' :: ActionDSL (Resource (Array User))
 fetchUsers' = do
@@ -52,6 +56,7 @@ fetchUser' userId = do
 
 fetchUser :: UserId -> ActionDSL (AppState -> AppState)
 fetchUser userId = do
+  _ <- traceAnyA "fetchUser"
   _ <- setUserState Loading
   user <- fetchUser' userId
   setUserState user

@@ -16,6 +16,7 @@ import ReactDOM (render)
 
 main :: Eff (AppEffects ()) Unit
 main = do
+  log "Main.main"
   root <- querySelector (wrap "#app") =<< document =<< window
   app' <- app
   case root of

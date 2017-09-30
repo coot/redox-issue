@@ -4,9 +4,9 @@ import Prelude
 
 import App.Action (changeRoute, fetchUser)
 import App.Domain.AppState (AppState)
-import App.Domain.User (UserDetail(..), UserId)
 import App.Domain.Resource (Resource(..))
 import App.Domain.Route (Route(..))
+import App.Domain.User (UserDetail(..), UserId)
 import App.Views.Components.Button (buttonStyle)
 import Data.Foreign (renderForeignError)
 import Data.Lens (to)
@@ -24,8 +24,8 @@ editUser :: ReactClass { userId :: Maybe UserId }
 editUser =
   connect
     (Proxy :: Proxy AppState)
-    (to \{ editingUser } -> { editingUser })
-    (\_ { editingUser } { userId } ->
+    (to \{ editingUser } -> editingUser)
+    (\_ editingUser { userId } ->
       { editingUser, userId })
     (createClass $ (spec unit renderFn)
       { displayName = "EditUser"
@@ -95,5 +95,6 @@ editUser =
               [ editUserForm this editingUser
               , editUserButtons this
               ]
+            Loading -> [ R.text "loading ..." ]
             Failed errs -> [ R.text (renderForeignError $ head errs) ]
             _ -> [ R.text "" ]

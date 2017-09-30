@@ -2,17 +2,12 @@ module App.Domain.User where
 
 import Prelude
 
-import Control.Monad.Aff (Aff, attempt, delay)
-import Control.Monad.Eff.Exception (message)
-import Control.Monad.Except (runExcept)
-import Data.Either (Either, either)
-import Data.Foreign (ForeignError(TypeMismatch, ForeignError), MultipleErrors, fail, readString, tagOf, toForeign)
+import Control.Monad.Aff (Aff, delay)
+import Data.Either (Either)
+import Data.Foreign (MultipleErrors)
 import Data.Maybe (Maybe)
-import Data.Newtype (class Newtype, unwrap, wrap)
-import Data.String (toLower)
+import Data.Newtype (class Newtype, wrap)
 import Network.HTTP.Affjax (AJAX)
-import Network.HTTP.Affjax as Ajax
-import Network.HTTP.RequestHeader (RequestHeader(..))
 import Simple.JSON (class ReadForeign, class WriteForeign, readJSON)
 
 fetchUsers :: ∀ fx. Aff (ajax :: AJAX | fx) (Either MultipleErrors (Array User))
@@ -50,5 +45,6 @@ newtype UserDetail = UserDetail
   , detail :: String
   }
 
+derive instance eqUserDetail :: Eq UserDetail
 derive instance ntUserDetail :: Newtype UserDetail _
 derive newtype instance rfUserDetail :: ReadForeign UserDetail
